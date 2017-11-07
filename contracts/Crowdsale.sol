@@ -42,9 +42,17 @@ contract Crowdsale {
 	address _owner;
 	uint start_time;
 	uint tokenSupply;
-	uint tokenPrice;
-
+	uint time_cap;
+	//When do we initialize q?
+	Queue q;
 	Token token;
+
+	//the amount of tokens 1 wei is worth
+	uint tokenPrice;
+	Token token;
+
+	event TokensSold(uint numTokens);
+
 
 	//Ensure that tokenPrice is in wei
 	function Crowdsale (uint time_cap, uint initTokenSupply, uint initTokenPrice){
@@ -56,21 +64,51 @@ contract Crowdsale {
 		tokenSupply = initTokenSupply;
 		tokenPrice	= initTokenPrice;
 		token = new Token();
+		q = new Queue();
 	}
 
 	function mintTokens(uint numTokensToAdd) {
-		//THIS IMPLIES THAT TOKEN.SOL MUST SPECIFY ITS OWNER
+		//tx.origin or msg.sender?
+		require(msg.sender == _owner);
 		token.tokenSupply.add(numTokensToAdd);
 	}
 
 	function burnTokens(uint numTokensToBurn) {
 		//THIS IMPLIES THAT TOKEN.SOL MUST SPECIFY ITS OWNER
-		//assert(numTokensToBurn< NUM_UNSOLD_TOKENS);
+		//TODO: assert(numTokensToBurn< NUM_UNSOLD_TOKENS);
+		//tx.origin or msg.sender?
+		require(msg.sender == _owner);
 		token.tokenSupply.sub(numTokensToAdd);
 	}
 
 	function redeemFunds() {
+		//TODO: tx.origin or msg.sender?
 		assert(msg.sender == _owner);
 		//_owner.transfer(this.balance);
 	}
+
+
+	function buyTokens(){
+		require(q.getFirst() == msg.sender);
+		//TODO: What do if no time_cap?
+		require(block.number > time_cap.add(start_time));
+		//TODO: Legeng, can you implement isSecond() to check if person behind?
+		require (q.qsize() > 1);
+		//TODO: CHECK TO MAKE SURE THEY'VE SENT ENOUGH ETHER
+
+		uint tokensToPurchase = msg.value.div(tokenPrice);
+
+		//	This would change their balance in Token.sol
+		token.balances[msg.sender].add(tokensToPurchase);
+
+		//	This would change the number of tokens sold
+		tokenSupply.add(tokensToPurchase);
+
+		TokensSold(tokensToPurchase);
+
+	}
+
+	//Fallback function (do not delete!!!)
+	function () payable {}
+
 }
