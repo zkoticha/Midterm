@@ -22,7 +22,7 @@ contract Queue {
 
 	/* Returns the number of people waiting in line */
 	function qsize() constant returns(uint8) {
-		return queue.length;
+		return uint8(queue.length);
 	}
 
 	/* Returns whether the queue is empty or not */
@@ -37,13 +37,18 @@ contract Queue {
 			return queue[0];
 		}
 	}
+
+	/* Check if there is a second person in queue behind the first. */
+	function isSecond() constant returns(bool) {
+		return queue.length >= 2;
+	}
 	
 	/* Allows `msg.sender` to check their position in the queue.
 	Returns -1 if 'msg.sender' not in queue.*/
-	function checkPlace() constant returns(uint8) {
+	function checkPlace() constant returns(int8) {
 		for (uint8 i = 0; i < size; i++) {
 			if (queue[i] == msg.sender) {
-				return i;
+				return int8(i);
 			}
 		}
 		return -1;
