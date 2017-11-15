@@ -9,44 +9,57 @@ pragma solidity ^0.4.15;
 
 contract Queue {
 	/* State variables */
-	uint8 size = 5;
+	uint8 sizeLimit = 5;
+	uint8 currentSize;
 	address[] queue;
 	uint time_limit = 5 minutes; // arbitrary time limit
-	uint front_queue_timestamp;
+	uint timestamp;
+
 
 	/* Add events */
 	event Ejected(address ejected);
 
 	/* Constructor */
-	function Queue() {}
+	function Queue() {
+		currentSize = 0;
+	}
 
 	/* Returns the number of people waiting in line */
 	function qsize() constant returns(uint8) {
-		return queue.length;
+		return currentSize;
+	}
+
+	function qSizeLimit() constant returns(uint8) {
+		return sizeLimit;
 	}
 
 	/* Returns whether the queue is empty or not */
 	function empty() constant returns(bool) {
-		return queue.length == 0;
+		return (currentSize == 0);
 	}
 	
 	/* Returns the address of the person in the front of the queue */
 	function getFirst() constant returns(address) {
-		// TODO: handle case when no one in queue
-		if (queue.length != 0) {
+		if (currentSize > 0) {
 			return queue[0];
 		}
+		return address(0);
+	}
+
+	/* Check if there is a second person in queue behind the first. */
+	function isSecond() constant returns(bool) {
+		return currentSize >= 2;
 	}
 	
 	/* Allows `msg.sender` to check their position in the queue.
 	Returns -1 if 'msg.sender' not in queue.*/
 	function checkPlace() constant returns(uint8) {
-		for (uint8 i = 0; i < size; i++) {
+		for (uint8 i = 0; i < currentSize; i++) {
 			if (queue[i] == msg.sender) {
-				return i;
+				return i + 1;
 			}
 		}
-		return -1;
+		return 0;
 	}
 	
 	/* Allows anyone to expel the first person in line if their time
@@ -54,9 +67,8 @@ contract Queue {
 	 */
 	function checkTime() {
 		if (!empty()) {
-			if (now - front_queue_timestamp > time_limit) {
-				address ejected = dequeue();
-				Ejected(ejected);
+			if (now - timestamp > time_limit) {
+				dequeue();
 			}
 		}
 	}
@@ -64,25 +76,28 @@ contract Queue {
 	/* Removes the first person in line; either when their time is up or when
 	 * they are done with their purchase.
 	 */
-	function dequeue() returns (address) {
+	function dequeue() {
 		if (empty()) {
-			return;
+		} else {
+			for (uint i = 1; i < currentSize; i++) {
+				queue[i - 1] = queue[i];
+			}
+			queue[currentSize - 1] = address(0);
+			currentSize -= 1;
+			timestamp = now;
 		}
-		address ejected = queue[0];
-		// Not too sure about code below; might be very buggy
-		for (uint i = 0; i < queue.length - 1; i++) {
-			queue[i] = queue[i + 1];
-		}
-		delete queue[queue.length - 1];
-		queue.length--;
-		return ejected;
-		// TODO: Remember to reset the timestamp!
 	}
 
 	/* Places `addr` in the first empty position in the queue */
-	function enqueue(address addr) {
-		if (queue.length < size) {
+	function enqueue(address addr) external {
+		if (currentSize >= sizeLimit) {
+			return;
+		} else {
+			if (qsize() == 0) {
+				timestamp = now;
+			}
 			queue.push(addr);
+			currentSize = currentSize + 1;	
 		}
 	}
 }

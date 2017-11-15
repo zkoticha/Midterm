@@ -49,28 +49,27 @@ contract Crowdsale {
 
 	//the amount of tokens 1 wei is worth
 	uint tokenPrice;
-	Token token;
 
 	event TokensSold(uint numTokens);
 
 
 	//Ensure that tokenPrice is in wei
-	function Crowdsale (uint time_cap, uint initTokenSupply, uint initTokenPrice){
+	function Crowdsale (uint timeCap, uint initTokenSupply, uint initTokenPrice){
 		_owner = tx.origin;
 		//I can imagine this will matter, might have to be block.number+constant
-		assert (time_cap > block.number);
+		assert (timeCap > block.number);
 
 		start_time 	= block.number;
 		tokenSupply = initTokenSupply;
 		tokenPrice	= initTokenPrice;
-		token = new Token();
+		token = new Token(tokenSupply);
 		q = new Queue();
 	}
 
 	function mintTokens(uint numTokensToAdd) {
 		//tx.origin or msg.sender?
 		require(msg.sender == _owner);
-		token.tokenSupply.add(numTokensToAdd);
+		token.totalSupply.add(numTokensToAdd);
 	}
 
 	function burnTokens(uint numTokensToBurn) {
@@ -78,7 +77,7 @@ contract Crowdsale {
 		//TODO: assert(numTokensToBurn< NUM_UNSOLD_TOKENS);
 		//tx.origin or msg.sender?
 		require(msg.sender == _owner);
-		token.tokenSupply.sub(numTokensToAdd);
+		token.tokenSupply.sub(numTokensToBurn);
 	}
 
 	function redeemFunds() {
